@@ -9,4 +9,7 @@ module Config
   PORT = ENV.fetch("PORT", 4567).to_i
   BIND = ENV.fetch("BIND", "0.0.0.0")
   TRANSCRIPTION_MODEL = ENV.fetch("TRANSCRIPTION_MODEL", "gemini-2.5-flash")
+  SSL_CERT = ENV.fetch("SSL_CERT", File.join(__dir__, "certs", "server.crt"))
+  SSL_KEY = ENV.fetch("SSL_KEY", File.join(__dir__, "certs", "server.key"))
+  SSL_ENABLED = File.exist?(SSL_CERT) && File.exist?(SSL_KEY)
 end
