@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VxRuby</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 1rem; opacity: 0.7; }
+    #status {
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      color: #aaa;
+      min-height: 1.2em;
+    }
+    #status.recording { color: #ff6b6b; }
+    #status.transcribing { color: #ffd93d; }
+    #status.done { color: #6bcb77; }
+    #status.error { color: #ff6b6b; }
+    #record-btn {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 4px solid #444;
+      background: #333;
+      color: #eee;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #record-btn:active { transform: scale(0.95); }
+    #record-btn.recording {
+      background: #c0392b;
+      border-color: #e74c3c;
+      animation: pulse 1.5s infinite;
+    }
+    #record-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+      50% { box-shadow: 0 0 0 20px rgba(231, 76, 60, 0); }
+    }
+    #result {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 500px;
+      min-height: 80px;
+      padding: 1rem;
+      background: #16213e;
+      border-radius: 8px;
+      font-size: 1rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #result:empty::before {
+      content: "Transcription will appear here...";
+      color: #555;
+    }
+    .copied {
+      font-size: 0.8rem;
+      color: #6bcb77;
+      margin-top: 0.5rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .copied.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <h1>VxRuby</h1>
+  <div id="status">Connecting...</div>
+  <button id="record-btn" disabled>Record</button>
+  <div id="result"></div>
+  <div class="copied" id="copied">Copied to clipboard</div>
+
+  <script>
+    const btn = document.getElementById('record-btn');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+    const copied = document.getElementById('copied');
+
+    let ws;
+    let mediaRecorder;
+    let recording = false;
+
+    function setStatus(text, cls) {
+      status.textContent = text;
+      status.className = cls || '';
+    }
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+      ws.onopen = () => {
+        setStatus('Ready');
+        btn.disabled = false;
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'status') {
+          setStatus(msg.text, 'transcribing');
+        } else if (msg.type === 'result') {
+          result.textContent = msg.text;
+          setStatus('Done - copied to clipboard', 'done');
+          copied.classList.add('show');
+          setTimeout(() => copied.classList.remove('show'), 3000);
+          btn.disabled = false;
+        } else if (msg.type === 'error') {
+          setStatus(`Error: ${msg.text}`, 'error');
+          btn.disabled = false;
+        }
+      };
+
+      ws.onclose = () => {
+        setStatus('Disconnected. Reconnecting...');
+        btn.disabled = true;
+        setTimeout(connect, 2000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+          ws.send(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send('stop');
+        }
+        setStatus('Transcribing...', 'transcribing');
+        btn.textContent = 'Record';
+        btn.classList.remove('recording');
+      };
+
+      mediaRecorder.start(250); // send chunks every 250ms
+      recording = true;
+      btn.textContent = 'Stop';
+      btn.classList.add('recording');
+      setStatus('Recording...', 'recording');
+      copied.classList.remove('show');
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        recording = false;
+        btn.disabled = true;
+        mediaRecorder.stop();
+      }
+    }
+
+    btn.addEventListener('click', () => {
+      if (recording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    connect();
+  </script>
+</body>
+</html>

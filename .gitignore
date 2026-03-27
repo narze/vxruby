@@ -1,0 +1,5 @@
+.env
+tmp/
+*.gem
+.bundle/
+vendor/bundle/
