@@ -59,7 +59,7 @@ If no certs are present, the server falls back to HTTP (works for localhost test
 ### Run
 
 ```bash
-bundle exec puma -C puma.rb config.ru
+./bin/server
 ```
 
 Open `https://your-server:4567` on your phone. Accept the self-signed cert warning, then tap Record and speak.

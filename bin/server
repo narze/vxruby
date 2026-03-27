@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+require "bundler/setup"
+require "puma/cli"
+
+puma_rb = File.expand_path("../puma.rb", __dir__)
+config_ru = File.expand_path("../config.ru", __dir__)
+
+Puma::CLI.new(["-C", puma_rb, config_ru]).run
