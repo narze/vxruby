@@ -2,6 +2,8 @@
 
 A self-hosted personal speech transcriber. Open the browser on your phone, speak into it, and the server transcribes the audio using [RubyLLM](https://rubyllm.com/) and copies the text to your macOS clipboard.
 
+<img width="2744" height="1852" alt="Vivaldi 2026-03-27 11 25 15" src="https://github.com/user-attachments/assets/4c45fefa-5b9e-4e1a-95dc-b330f3f68afc" />
+
 ## Architecture
 
 ```
