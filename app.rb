@@ -31,8 +31,7 @@ class VxRuby < Sinatra::Base
   set :bind, Config::BIND
   set :public_folder, File.join(__dir__, "public")
 
-  # Allow access from Tailscale IPs and local network
-  set :host_authorization, {permitted_hosts: []}
+  set :host_authorization, {permitted_hosts: Config::PERMITTED_HOSTS}
 
   get "/" do
     send_file File.join(settings.public_folder, "index.html")

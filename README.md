@@ -37,7 +37,10 @@ GEMINI_API_KEY=your_key_here
 TRANSCRIPTION_MODEL=gemini-2.5-flash
 PORT=4567
 BIND=0.0.0.0
+PERMITTED_HOSTS=your-hostname.ts.net
 ```
+
+`localhost` is always permitted. Add additional hostnames (comma-separated) via `PERMITTED_HOSTS`.
 
 ### SSL (required for mobile microphone access)
 
