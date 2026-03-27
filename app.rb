@@ -22,12 +22,14 @@ class VxRuby < Sinatra::Base
 
     ws.on :open do |_event|
       puts "[WS] Client connected"
-      tempfile = Tempfile.new(["recording", ".webm"])
+      tempfile = Tempfile.new(["recording", ".ogg"])
       tempfile.binmode
     end
 
     ws.on :message do |event|
-      if event.data.is_a?(String) && event.data == "stop"
+      data = event.data
+
+      if data.is_a?(String) && data == "stop"
         puts "[WS] Stop received, transcribing..."
         ws.send(JSON.generate({type: "status", text: "Transcribing..."}))
 
@@ -49,11 +51,13 @@ class VxRuby < Sinatra::Base
           ws.send(JSON.generate({type: "error", text: e.message}))
         ensure
           tempfile&.unlink
-          tempfile = Tempfile.new(["recording", ".webm"])
+          tempfile = Tempfile.new(["recording", ".ogg"])
           tempfile.binmode
         end
-      elsif event.data.is_a?(Array)
-        tempfile&.write(event.data.pack("C*"))
+      else
+        # Binary data: may arrive as Array of bytes or binary String
+        chunk = data.is_a?(Array) ? data.pack("C*") : data.b
+        tempfile&.write(chunk)
       end
     end
 

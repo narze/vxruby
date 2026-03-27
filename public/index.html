@@ -141,7 +141,10 @@
 
     async function startRecording() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      // Use audio/ogg to ensure server-side MIME detection returns audio/* (not video/webm)
+      const preferredTypes = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm'];
+      const mimeType = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+      mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
